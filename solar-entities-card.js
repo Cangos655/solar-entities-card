@@ -194,12 +194,12 @@ class SolarEntitiesCard extends HTMLElement {
     // negative = discharging, positive = charging
     let batArrow = '⚡', batPowColor = 'var(--secondary-text-color, #8e8e93)', batStatus = 'Standby';
     if (batPow < -10) {
-      batArrow = '↑'; batPowColor = '#34c759'; batStatus = 'Entlädt';
+      batArrow = '↑'; batPowColor = '#ff3b30'; batStatus = 'Entlädt';
     } else if (batPow > 10) {
-      batArrow = '↓'; batPowColor = '#ff3b30'; batStatus = 'Lädt';
+      batArrow = '↓'; batPowColor = '#34c759'; batStatus = 'Lädt';
     }
     const batPowDisplay = Math.abs(Math.round(batPow)).toLocaleString('de-DE');
-    const batPillBg     = batPow < -10 ? 'rgba(52,199,89,0.09)' : batPow > 10 ? 'rgba(255,59,48,0.08)' : 'var(--secondary-background-color, #f2f2f7)';
+    const batPillBg     = batPow < -10 ? 'rgba(255,59,48,0.08)' : batPow > 10 ? 'rgba(52,199,89,0.09)' : 'var(--secondary-background-color, #f2f2f7)';
 
     // yield header
     const yieldHtml = yieldVal !== null
