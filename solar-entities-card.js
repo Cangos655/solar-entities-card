@@ -290,16 +290,16 @@ class SolarEntitiesCard extends HTMLElement {
           min-height: 160px;
         }
         .pv-ring-area {
-          flex: 1.1;
+          flex: 1.6;
           display: flex; flex-direction: column;
           align-items: center; justify-content: center;
-          padding: 14px 6px 10px;
+          padding: 14px 8px 10px;
           cursor: pointer;
           transition: background 0.15s;
         }
         .pv-ring-area:hover  { background: rgba(52,199,89,0.04); }
         .pv-ring-area:active { opacity: 0.7; }
-        .pv-ring-area svg    { width: 100%; max-width: 130px; height: auto; }
+        .pv-ring-area svg    { width: 100%; max-width: 160px; height: auto; }
         .pv-label {
           font-size: 11px; font-weight: 500;
           color: var(--secondary-text-color, #8e8e93);
@@ -311,34 +311,28 @@ class SolarEntitiesCard extends HTMLElement {
           margin: 12px 0; flex-shrink: 0;
         }
         .strings-col {
-          flex: 0.9;
+          flex: 0.7;
           display: flex; flex-direction: column;
           justify-content: center;
-          padding: 12px 10px; gap: 6px;
+          padding: 10px 10px; gap: 4px;
         }
         .string-item {
-          background: rgba(0,0,0,0.03);
-          border-radius: 10px; padding: 9px 11px;
+          border-radius: 8px; padding: 7px 9px;
           cursor: pointer;
           transition: background 0.15s;
         }
         .string-item:hover  { background: rgba(48,209,88,0.09); }
         .string-item:active { opacity: 0.6; }
         .string-lbl {
-          font-size: 10px; font-weight: 500;
+          font-size: 9px; font-weight: 500;
           color: var(--secondary-text-color, #aeaeb2);
-          text-transform: uppercase; letter-spacing: 0.2px;
+          text-transform: uppercase; letter-spacing: 0.3px;
         }
         .string-row {
-          display: flex; align-items: baseline; gap: 3px; margin-top: 1px;
+          display: flex; align-items: baseline; gap: 2px; margin-top: 1px;
         }
-        .string-val  { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; line-height: 1; }
-        .string-unit { font-size: 11px; color: var(--secondary-text-color, #8e8e93); }
-        .string-bar  {
-          height: 2px; background: rgba(0,0,0,0.07);
-          border-radius: 1px; margin-top: 6px; overflow: hidden;
-        }
-        .string-bar-fill { height: 100%; background: #30d158; border-radius: 1px; }
+        .string-val  { font-size: 15px; font-weight: 700; letter-spacing: -0.4px; line-height: 1; }
+        .string-unit { font-size: 10px; color: var(--secondary-text-color, #8e8e93); }
 
         /* HOUSE TILE */
         .tile-house {
@@ -438,18 +432,12 @@ class SolarEntitiesCard extends HTMLElement {
                   <div class="string-val">${this._fmt(s1Val, 'W')}</div>
                   <div class="string-unit">W</div>
                 </div>
-                <div class="string-bar">
-                  <div class="string-bar-fill" style="width:${Math.min(s1Frac * 100, 100).toFixed(1)}%"></div>
-                </div>
               </div>
               <div class="string-item" data-entity="${c.entity_string2 || ''}">
                 <div class="string-lbl">String 2</div>
                 <div class="string-row">
                   <div class="string-val">${this._fmt(s2Val, 'W')}</div>
                   <div class="string-unit">W</div>
-                </div>
-                <div class="string-bar">
-                  <div class="string-bar-fill" style="width:${Math.min(s2Frac * 100, 100).toFixed(1)}%"></div>
                 </div>
               </div>
             </div>
