@@ -7,10 +7,12 @@ Eine Custom Lovelace Card für Home Assistant zur Anzeige von Solar-Entitäten: 
 
 ## Vorschau
 
+![Solar Entities Card Screenshot](screenshot.png)
+
 Die Karte zeigt:
 - **PV-Leistung** als großen 270°-Ring-Gauge
-- **String 1 & 2** als Zahlenwerte mit Balkenanzeige
-- **Speicher** als Batterie-Grafik mit Ladestand und Leistungsanzeige (+/− W)
+- **S1 & S2** als kompakte Zahlenwerte unterhalb des PV-Labels
+- **Speicher** als Batterie-Grafik mit Ladestand (%) und Leistungsanzeige (+/− W)
 - **Hausverbrauch** als Zahlenwert
 - **PV Tagesertrag** im Header (anklickbar)
 
