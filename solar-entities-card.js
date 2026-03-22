@@ -331,8 +331,8 @@ class SolarEntitiesCard extends HTMLElement {
         .string-row {
           display: flex; align-items: baseline; gap: 2px; margin-top: 1px;
         }
-        .string-val  { font-size: 15px; font-weight: 700; letter-spacing: -0.4px; line-height: 1; }
-        .string-unit { font-size: 10px; color: var(--secondary-text-color, #8e8e93); }
+        .string-val  { font-size: 13px; font-weight: 700; letter-spacing: -0.3px; line-height: 1; }
+        .string-unit { font-size: 9px; color: var(--secondary-text-color, #8e8e93); }
 
         /* HOUSE TILE */
         .tile-house {
@@ -427,14 +427,14 @@ class SolarEntitiesCard extends HTMLElement {
             <div class="pv-divider"></div>
             <div class="strings-col">
               <div class="string-item" data-entity="${c.entity_string1 || ''}">
-                <div class="string-lbl">String 1</div>
+                <div class="string-lbl">S1</div>
                 <div class="string-row">
                   <div class="string-val">${this._fmt(s1Val, 'W')}</div>
                   <div class="string-unit">W</div>
                 </div>
               </div>
               <div class="string-item" data-entity="${c.entity_string2 || ''}">
-                <div class="string-lbl">String 2</div>
+                <div class="string-lbl">S2</div>
                 <div class="string-row">
                   <div class="string-val">${this._fmt(s2Val, 'W')}</div>
                   <div class="string-unit">W</div>
