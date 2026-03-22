@@ -372,6 +372,9 @@ class SolarEntitiesCard extends HTMLElement {
         }
         .bat-cap-fill { height: 100%; border-radius: 2px; }
         .bat-power-row { display: flex; align-items: center; gap: 8px; }
+        .bat-soc-click.clickable { cursor: pointer; border-radius: 8px; transition: opacity 0.15s; }
+        .bat-soc-click.clickable:hover  { opacity: 0.7; }
+        .bat-soc-click.clickable:active { opacity: 0.45; }
         .bat-power-pill {
           display: flex; align-items: center; gap: 5px;
           border-radius: 20px; padding: 5px 10px;
@@ -443,27 +446,29 @@ class SolarEntitiesCard extends HTMLElement {
           </div>
 
           <!-- BATTERIE (full width) -->
-          <div class="tile tile-battery clickable" data-entity="${c.entity_battery_soc || ''}">
-            ${batSvg}
+          <div class="tile tile-battery">
+            <div class="bat-soc-click clickable" data-entity="${c.entity_battery_soc || ''}">
+              ${batSvg}
+            </div>
             <div class="bat-divider"></div>
             <div class="bat-info">
-              <div>
+              <div class="bat-soc-click clickable" data-entity="${c.entity_battery_soc || ''}">
                 <div class="bat-info-title">Speicher</div>
                 <div class="bat-soc-row">
                   <div class="bat-soc-num">${this._fmt(socVal, '%')}</div>
                   <div class="bat-soc-unit">%</div>
                 </div>
               </div>
-              <div class="bat-cap-bar">
+              <div class="bat-cap-bar bat-soc-click clickable" data-entity="${c.entity_battery_soc || ''}">
                 <div class="bat-cap-fill" style="width:${batCapPct}%;background:${batSocColor}"></div>
               </div>
               <div class="bat-power-row">
-                <div class="bat-power-pill" style="background:${batPillBg}">
+                <div class="bat-power-pill clickable" style="background:${batPillBg}" data-entity="${c.entity_battery_power || ''}">
                   <span class="bat-arrow" style="color:${batPowColor}">${batArrow}</span>
                   <span class="bat-pow-num" style="color:${batPowColor}">${batPowDisplay}</span>
                   <span class="bat-pow-unit">W</span>
                 </div>
-                <span class="bat-status" style="color:${batPowColor}">${batStatus}</span>
+                <span class="bat-status clickable" style="color:${batPowColor}" data-entity="${c.entity_battery_power || ''}">${batStatus}</span>
               </div>
             </div>
           </div>
@@ -497,9 +502,17 @@ class SolarEntitiesCard extends HTMLElement {
       });
     });
 
-    // Tiles with data-entity (house, battery)
+    // House tile
     this.shadowRoot.querySelectorAll('.tile[data-entity]').forEach(el => {
       el.addEventListener('click', () => this._moreInfo(el.dataset.entity));
+    });
+
+    // Battery: SOC areas and power pill/status (each has own data-entity)
+    this.shadowRoot.querySelectorAll('.bat-soc-click[data-entity], .bat-power-pill[data-entity], .bat-status[data-entity]').forEach(el => {
+      el.addEventListener('click', e => {
+        e.stopPropagation();
+        this._moreInfo(el.dataset.entity);
+      });
     });
   }
 
