@@ -2,7 +2,7 @@
 // Custom Lovelace Card for Home Assistant
 // Displays solar power entities: PV, Strings, Battery, House consumption
 
-const CARD_VERSION = '1.0.8';
+const CARD_VERSION = '1.0.9';
 
 // ─── SVG RING HELPERS ─────────────────────────────────────────────────────────
 
@@ -211,8 +211,10 @@ class SolarEntitiesCard extends HTMLElement {
         </div>`
       : '';
 
-    const pvRingSvg  = this._ringsvg(44, pvFrac,   '#34c759', 'rgba(52,199,89,0.12)',  this._fmt(pvVal, 'W'), 'Watt', 120);
-    const batSvg     = this._batterySvg(socVal, batSocColor);
+    const houseFrac   = houseVal / (c.max_house || 3000);
+    const pvRingSvg   = this._ringsvg(44, pvFrac,    '#34c759', 'rgba(52,199,89,0.12)',   this._fmt(pvVal, 'W'),    'Watt', 120);
+    const houseRingSvg = this._ringsvg(44, houseFrac, '#ff3b30', 'rgba(255,59,48,0.12)', this._fmt(houseVal, 'W'), 'Watt', 120);
+    const batSvg      = this._batterySvg(socVal, batSocColor);
 
     this.shadowRoot.innerHTML = `
       <style>
@@ -332,14 +334,24 @@ class SolarEntitiesCard extends HTMLElement {
 
         /* HOUSE TILE */
         .tile-house {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          min-height: 160px;
+        }
+        .house-ring-area {
+          width: 100%;
           display: flex; flex-direction: column;
           align-items: center; justify-content: center;
-          padding: 18px 10px 12px; gap: 2px;
+          padding: 14px 12px 6px;
+          cursor: pointer;
+          transition: background 0.15s;
+          flex: 1;
         }
-        .house-icon  { font-size: 24px; margin-bottom: 4px; }
-        .house-val   { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; line-height: 1; }
-        .house-unit  { font-size: 11px; color: var(--secondary-text-color, #8e8e93); }
-        .house-label { font-size: 11px; font-weight: 500; color: var(--secondary-text-color, #8e8e93); margin-top: 6px; }
+        .house-ring-area:hover  { background: rgba(255,59,48,0.04); }
+        .house-ring-area:active { opacity: 0.7; }
+        .house-ring-area svg    { width: 100%; max-width: 150px; height: auto; }
+        .house-label { font-size: 11px; font-weight: 500; color: var(--secondary-text-color, #8e8e93); margin-top: 4px; }
 
         /* BATTERY TILE */
         .tile-battery {
@@ -438,11 +450,11 @@ class SolarEntitiesCard extends HTMLElement {
           </div>
 
           <!-- HAUSVERBRAUCH -->
-          <div class="tile tile-house clickable" data-entity="${c.entity_house || ''}">
-            <div class="house-icon">🏠</div>
-            <div class="house-val">${this._fmt(houseVal, 'W')}</div>
-            <div class="house-unit">Watt</div>
-            <div class="house-label">Verbrauch</div>
+          <div class="tile tile-house">
+            <div class="house-ring-area" data-entity="${c.entity_house || ''}">
+              ${houseRingSvg}
+              <div class="house-label">Verbrauch</div>
+            </div>
           </div>
 
           <!-- BATTERIE (full width) -->
@@ -502,10 +514,11 @@ class SolarEntitiesCard extends HTMLElement {
       });
     });
 
-    // House tile
-    this.shadowRoot.querySelectorAll('.tile[data-entity]').forEach(el => {
-      el.addEventListener('click', () => this._moreInfo(el.dataset.entity));
-    });
+    // House ring area
+    const houseRing = this.shadowRoot.querySelector('.house-ring-area[data-entity]');
+    if (houseRing) {
+      houseRing.addEventListener('click', () => this._moreInfo(houseRing.dataset.entity));
+    }
 
     // Battery: SOC areas and power pill/status (each has own data-entity)
     this.shadowRoot.querySelectorAll('.bat-soc-click[data-entity], .bat-power-pill[data-entity], .bat-status[data-entity]').forEach(el => {
