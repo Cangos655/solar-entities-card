@@ -2,19 +2,7 @@
 // Custom Lovelace Card for Home Assistant
 // Displays solar power entities: PV, Strings, Battery, House consumption
 
-const CARD_VERSION = '1.0.10';
-
-// ─── SVG RING HELPERS ─────────────────────────────────────────────────────────
-
-// Full 270° track arc path (gap at bottom)
-// Uses stroke-dasharray on a circle: 75% filled = 270°, 25% gap = 90°
-function ringDashArray(r, fraction) {
-  const C      = 2 * Math.PI * r;
-  const arc270 = C * 0.75;
-  const filled = Math.max(0, Math.min(fraction, 1)) * arc270;
-  const empty  = C - filled;
-  return { filled: filled.toFixed(2), empty: empty.toFixed(2), track: arc270.toFixed(2), gap: (C * 0.25).toFixed(2) };
-}
+const CARD_VERSION = '1.0.11';
 
 // ─── MAIN CARD ────────────────────────────────────────────────────────────────
 
@@ -97,44 +85,6 @@ class SolarEntitiesCard extends HTMLElement {
     }));
   }
 
-  // ── build SVG ring (270° Apple-Watch style) ───────────────────────────────
-  _ringsvg(r, fraction, color, trackColor, valueText, unitText, vbSize) {
-    const cx = vbSize / 2;
-    const cy = vbSize / 2;
-    const sw = vbSize * 0.076;
-    const da = ringDashArray(r, fraction);
-
-    const valSize  = vbSize === 120 ? 19 : 16;
-    const unitSize = vbSize === 120 ? 9  : 8;
-    const valY     = cy - 2;
-    const unitY    = cy + valSize * 0.75;
-
-    return `
-      <svg viewBox="0 0 ${vbSize} ${vbSize}" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="${cx}" cy="${cy}" r="${r}"
-          fill="none" stroke="${trackColor}"
-          stroke-width="${sw}" stroke-linecap="round"
-          stroke-dasharray="${da.track} ${da.gap}"
-          transform="rotate(-225 ${cx} ${cy})"/>
-        <circle cx="${cx}" cy="${cy}" r="${r}"
-          fill="none" stroke="${color}"
-          stroke-width="${sw}" stroke-linecap="round"
-          stroke-dasharray="${da.filled} ${da.empty}"
-          transform="rotate(-225 ${cx} ${cy})"/>
-        <text x="${cx}" y="${valY}"
-          font-family="var(--paper-font-body1_-_font-family, system-ui, sans-serif)"
-          font-size="${valSize}" font-weight="800"
-          dominant-baseline="middle" text-anchor="middle"
-          letter-spacing="-0.5"
-          fill="var(--primary-text-color, #1c1c1e)">${valueText}</text>
-        <text x="${cx}" y="${unitY}"
-          font-family="var(--paper-font-body1_-_font-family, system-ui, sans-serif)"
-          font-size="${unitSize}" font-weight="400"
-          dominant-baseline="middle" text-anchor="middle"
-          fill="var(--secondary-text-color, #8e8e93)">${unitText}</text>
-      </svg>`;
-  }
-
   // ── build battery SVG ────────────────────────────────────────────────────
   _batterySvg(socPct, batColor) {
     const innerH = 82;
@@ -212,8 +162,8 @@ class SolarEntitiesCard extends HTMLElement {
       : '';
 
     const houseFrac   = houseVal / (c.max_house || 3000);
-    const pvRingSvg   = this._ringsvg(44, pvFrac,    '#34c759', 'rgba(52,199,89,0.12)',   this._fmt(pvVal, 'W'),    'Watt', 120);
-    const houseRingSvg = this._ringsvg(44, houseFrac, '#ff3b30', 'rgba(255,59,48,0.12)', this._fmt(houseVal, 'W'), 'Watt', 120);
+    const pvBarH      = (Math.min(pvFrac, 1) * 100).toFixed(1);
+    const houseBarH   = (Math.min(houseFrac, 1) * 100).toFixed(1);
     const batSvg      = this._batterySvg(socVal, batSocColor);
 
     this.shadowRoot.innerHTML = `
@@ -286,72 +236,66 @@ class SolarEntitiesCard extends HTMLElement {
         .tile.clickable:hover  { opacity: 0.82; }
         .tile.clickable:active { transform: scale(0.97); }
 
-        /* PV TILE */
-        .tile-pv {
+        /* PV + HOUSE TILES – vertical bar style */
+        .tile-pv, .tile-house {
+          display: flex;
+          align-items: stretch;
+          padding: 14px 14px 14px 12px;
+          gap: 12px;
+          min-height: 110px;
+          cursor: pointer;
+          transition: opacity 0.15s;
+        }
+        .tile-pv:active, .tile-house:active { opacity: 0.7; }
+
+        .vbar-wrap {
+          width: 10px;
+          flex-shrink: 0;
+          background: rgba(120,120,128,0.15);
+          border-radius: 5px;
+          position: relative;
+          overflow: hidden;
+          align-self: stretch;
+        }
+        .vbar-fill {
+          position: absolute;
+          bottom: 0; left: 0; right: 0;
+          border-radius: 5px;
+          transition: height 0.5s cubic-bezier(.4,0,.2,1);
+        }
+        .stat-content {
+          flex: 1;
           display: flex;
           flex-direction: column;
-          align-items: center;
-          min-height: 160px;
+          justify-content: space-between;
         }
-        .pv-ring-area {
-          width: 100%;
-          display: flex; flex-direction: column;
-          align-items: center; justify-content: center;
-          padding: 14px 12px 6px;
-          cursor: pointer;
-          transition: background 0.15s;
-          flex: 1;
-        }
-        .pv-ring-area:hover  { background: rgba(52,199,89,0.04); }
-        .pv-ring-area:active { opacity: 0.7; }
-        .pv-ring-area svg    { width: 100%; max-width: 150px; height: auto; }
-        .pv-label {
-          font-size: 11px; font-weight: 500;
+        .stat-lbl {
+          font-size: 10px; font-weight: 600;
+          text-transform: uppercase; letter-spacing: 0.6px;
           color: var(--secondary-text-color, #8e8e93);
+        }
+        .stat-num {
+          font-size: 36px; font-weight: 800;
+          letter-spacing: -1.5px; line-height: 1;
+        }
+        .stat-unit {
+          font-size: 11px; font-weight: 400;
+          color: var(--secondary-text-color, #8e8e93);
+          margin-top: 1px;
+        }
+        .stat-strings {
+          font-size: 10px;
+          color: var(--secondary-text-color, #8e8e93);
+          opacity: 0.7;
           margin-top: 4px;
         }
-        .pv-strings {
-          display: flex; gap: 10px;
-          padding: 6px 12px 12px;
-        }
-        .pv-divider { display: none; }
-        .strings-col { display: none; }
-        .string-item {
-          display: flex; align-items: baseline; gap: 4px;
-          border-radius: 6px; padding: 3px 6px;
+        .stat-strings span {
           cursor: pointer;
+          border-radius: 4px;
+          padding: 1px 3px;
           transition: background 0.15s;
         }
-        .string-item:hover  { background: rgba(48,209,88,0.09); }
-        .string-item:active { opacity: 0.6; }
-        .string-lbl {
-          font-size: 10px; font-weight: 500;
-          color: var(--secondary-text-color, #aeaeb2);
-          letter-spacing: 0.2px;
-        }
-        .string-val  { font-size: 11px; font-weight: 700; letter-spacing: -0.2px; }
-        .string-unit { font-size: 10px; color: var(--secondary-text-color, #8e8e93); }
-
-        /* HOUSE TILE */
-        .tile-house {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          min-height: 160px;
-        }
-        .house-ring-area {
-          width: 100%;
-          display: flex; flex-direction: column;
-          align-items: center; justify-content: center;
-          padding: 14px 12px 6px;
-          cursor: pointer;
-          transition: background 0.15s;
-          flex: 1;
-        }
-        .house-ring-area:hover  { background: rgba(255,59,48,0.04); }
-        .house-ring-area:active { opacity: 0.7; }
-        .house-ring-area svg    { width: 100%; max-width: 150px; height: auto; }
-        .house-label { font-size: 11px; font-weight: 500; color: var(--secondary-text-color, #8e8e93); margin-top: 4px; }
+        .stat-strings span:hover { background: rgba(48,209,88,0.1); }
 
         /* BATTERY TILE */
         .tile-battery {
@@ -430,30 +374,35 @@ class SolarEntitiesCard extends HTMLElement {
         <div class="card-grid">
 
           <!-- PV + STRINGS -->
-          <div class="tile tile-pv">
-            <div class="pv-ring-area" data-entity="${c.entity_pv || ''}">
-              ${pvRingSvg}
-              <div class="pv-label">PV</div>
+          <div class="tile tile-pv" data-entity="${c.entity_pv || ''}">
+            <div class="vbar-wrap">
+              <div class="vbar-fill" style="height:${pvBarH}%;background:#34c759"></div>
             </div>
-            <div class="pv-strings">
-              <div class="string-item" data-entity="${c.entity_string1 || ''}">
-                <div class="string-lbl">S1</div>
-                <div class="string-val">${this._fmt(s1Val, 'W')}</div>
-                <div class="string-unit">W</div>
-              </div>
-              <div class="string-item" data-entity="${c.entity_string2 || ''}">
-                <div class="string-lbl">S2</div>
-                <div class="string-val">${this._fmt(s2Val, 'W')}</div>
-                <div class="string-unit">W</div>
+            <div class="stat-content">
+              <div class="stat-lbl">PV</div>
+              <div>
+                <div class="stat-num" style="color:#34c759">${this._fmt(pvVal, 'W')}</div>
+                <div class="stat-unit">Watt</div>
+                <div class="stat-strings">
+                  <span data-entity="${c.entity_string1 || ''}">S1 ${this._fmt(s1Val, 'W')} W</span>
+                  &nbsp;·&nbsp;
+                  <span data-entity="${c.entity_string2 || ''}">S2 ${this._fmt(s2Val, 'W')} W</span>
+                </div>
               </div>
             </div>
           </div>
 
           <!-- HAUSVERBRAUCH -->
-          <div class="tile tile-house">
-            <div class="house-ring-area" data-entity="${c.entity_house || ''}">
-              ${houseRingSvg}
-              <div class="house-label">Verbrauch</div>
+          <div class="tile tile-house" data-entity="${c.entity_house || ''}">
+            <div class="vbar-wrap">
+              <div class="vbar-fill" style="height:${houseBarH}%;background:#ff3b30"></div>
+            </div>
+            <div class="stat-content">
+              <div class="stat-lbl">Verbrauch</div>
+              <div>
+                <div class="stat-num" style="color:#ff3b30">${this._fmt(houseVal, 'W')}</div>
+                <div class="stat-unit">Watt</div>
+              </div>
             </div>
           </div>
 
@@ -500,24 +449,29 @@ class SolarEntitiesCard extends HTMLElement {
       yieldChip.addEventListener('click', () => this._moreInfo(this._config.entity_daily_yield));
     }
 
-    // PV ring
-    const pvRing = this.shadowRoot.querySelector('.pv-ring-area[data-entity]');
-    if (pvRing) {
-      pvRing.addEventListener('click', () => this._moreInfo(pvRing.dataset.entity));
+    // PV tile
+    const pvTile = this.shadowRoot.querySelector('.tile-pv[data-entity]');
+    if (pvTile) {
+      pvTile.addEventListener('click', e => {
+        // string spans handle their own click; tile click fires on the tile itself
+        if (!e.target.closest('.stat-strings span[data-entity]')) {
+          this._moreInfo(pvTile.dataset.entity);
+        }
+      });
     }
 
-    // String items
-    this.shadowRoot.querySelectorAll('.string-item[data-entity]').forEach(el => {
+    // String spans inside PV tile
+    this.shadowRoot.querySelectorAll('.stat-strings span[data-entity]').forEach(el => {
       el.addEventListener('click', e => {
         e.stopPropagation();
         this._moreInfo(el.dataset.entity);
       });
     });
 
-    // House ring area
-    const houseRing = this.shadowRoot.querySelector('.house-ring-area[data-entity]');
-    if (houseRing) {
-      houseRing.addEventListener('click', () => this._moreInfo(houseRing.dataset.entity));
+    // House tile
+    const houseTile = this.shadowRoot.querySelector('.tile-house[data-entity]');
+    if (houseTile) {
+      houseTile.addEventListener('click', () => this._moreInfo(houseTile.dataset.entity));
     }
 
     // Battery: SOC areas and power pill/status (each has own data-entity)
