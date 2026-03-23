@@ -2,7 +2,7 @@
 // Custom Lovelace Card for Home Assistant
 // Displays solar power entities: PV, Strings, Battery, House consumption
 
-const CARD_VERSION = '1.0.9';
+const CARD_VERSION = '1.0.10';
 
 // ─── SVG RING HELPERS ─────────────────────────────────────────────────────────
 
@@ -276,8 +276,8 @@ class SolarEntitiesCard extends HTMLElement {
 
         /* TILE BASE */
         .tile {
-          background: #ffffff;
-          border: 1px solid var(--divider-color, rgba(0,0,0,0.05));
+          background: var(--secondary-background-color, rgba(120,120,128,0.08));
+          border: 1px solid var(--divider-color, rgba(128,128,128,0.12));
           border-radius: 16px;
           overflow: hidden;
           transition: opacity 0.15s, transform 0.12s;
@@ -379,7 +379,7 @@ class SolarEntitiesCard extends HTMLElement {
         .bat-soc-num  { font-size: 34px; font-weight: 800; letter-spacing: -1px; line-height: 1; }
         .bat-soc-unit { font-size: 14px; color: var(--secondary-text-color, #8e8e93); }
         .bat-cap-bar  {
-          height: 3px; background: rgba(0,0,0,0.07);
+          height: 3px; background: rgba(120,120,128,0.2);
           border-radius: 2px; overflow: hidden;
         }
         .bat-cap-fill { height: 100%; border-radius: 2px; }
