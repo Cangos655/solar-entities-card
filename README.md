@@ -1,7 +1,7 @@
 # Solar Entities Card
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/integration)
-![Version](https://img.shields.io/badge/version-1.0.0-green)
+![Version](https://img.shields.io/badge/version-1.1.4-green)
 
 Eine Custom Lovelace Card für Home Assistant zur Anzeige von Solar-Entitäten: PV-Leistung, String-Leistungen, Batteriespeicher und Hausverbrauch.
 
@@ -10,13 +10,14 @@ Eine Custom Lovelace Card für Home Assistant zur Anzeige von Solar-Entitäten: 
 ![Solar Entities Card Screenshot](screenshot.png)
 
 Die Karte zeigt:
-- **PV-Leistung** als großen 270°-Ring-Gauge
-- **S1 & S2** als kompakte Zahlenwerte unterhalb des PV-Labels
-- **Speicher** als Batterie-Grafik mit Ladestand (%) und Leistungsanzeige (+/− W)
-- **Hausverbrauch** als Zahlenwert
+- **PV-Leistung** mit vertikalem Füllbalken und großer Zahlendarstellung
+- **S1 & S2** als klickbare Zahlenwerte unterhalb der PV-Anzeige
+- **Hausverbrauch** mit vertikalem Füllbalken und großer Zahlendarstellung
+- **Speicher** als Batterie-Grafik mit SOC (%), aktueller Leistung (W) und geschätzter Restzeit bis voll/leer
 - **PV Tagesertrag** im Header (anklickbar)
 
 Alle Elemente sind anklickbar und öffnen die native Home Assistant Detailansicht.
+Unterstützt **Light Mode** und **Dark Mode**.
 
 ## Installation via HACS
 
@@ -43,6 +44,9 @@ entity_battery_soc: sensor.speicher_soc
 entity_battery_power: sensor.speicher_leistung
 entity_house: sensor.hausverbrauch
 entity_daily_yield: sensor.pv_tagesertrag
+battery_capacity_kwh: 10
+battery_min_soc: 5
+battery_max_soc: 100
 max_pv: 6000
 max_string: 4000
 max_house: 3000
@@ -61,11 +65,14 @@ max_battery: 5000
 | `entity_battery_power` | Speicher Leistung +/− (W) | – |
 | `entity_house` | Hausverbrauch (W) | – |
 | `entity_daily_yield` | PV Tagesertrag (kWh) | – |
-| `max_pv` | Max. PV Leistung für Gauge (W) | `6000` |
+| `battery_capacity_kwh` | Speicher Kapazität (kWh) – für Restzeit-Berechnung | – |
+| `battery_min_soc` | Entlade-Limit (%) | `5` |
+| `battery_max_soc` | Lade-Limit (%) | `100` |
+| `max_pv` | Max. PV Leistung für Balken (W) | `6000` |
 | `max_string` | Max. String Leistung (W) | `4000` |
 | `max_house` | Max. Hausverbrauch (W) | `3000` |
 | `max_battery` | Max. Speicher Leistung (W) | `5000` |
 
 ## GUI-Editor
 
-Die Karte unterstützt den visuellen Editor in Home Assistant. Alle Entitäten und Maximalwerte können dort direkt konfiguriert werden.
+Die Karte unterstützt den visuellen Editor in Home Assistant. Alle Entitäten und Werte können dort direkt konfiguriert werden – ohne YAML.
