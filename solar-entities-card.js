@@ -2,7 +2,7 @@
 // Custom Lovelace Card for Home Assistant
 // Displays solar power entities: PV, Strings, Battery, House consumption
 
-const CARD_VERSION = '1.1.0';
+const CARD_VERSION = '1.1.1';
 
 // ─── MAIN CARD ────────────────────────────────────────────────────────────────
 
@@ -21,18 +21,19 @@ class SolarEntitiesCard extends HTMLElement {
 
   static getStubConfig() {
     return {
-      title:              'Haus',
-      entity_pv:          '',
-      entity_string1:     '',
-      entity_string2:     '',
-      entity_battery_soc: '',
-      entity_battery_power:'',
-      entity_house:       '',
-      entity_daily_yield: '',
-      max_pv:             6000,
-      max_string:         4000,
-      max_house:          3000,
-      max_battery:        5000,
+      title:                  'Haus',
+      entity_pv:              '',
+      entity_string1:         '',
+      entity_string2:         '',
+      entity_battery_soc:     '',
+      entity_battery_power:   '',
+      entity_house:           '',
+      entity_daily_yield:     '',
+      battery_capacity_kwh:   null,
+      max_pv:                 6000,
+      max_string:             4000,
+      max_house:              3000,
+      max_battery:            5000,
     };
   }
 
@@ -43,6 +44,7 @@ class SolarEntitiesCard extends HTMLElement {
       max_string:          4000,
       max_house:           3000,
       max_battery:         5000,
+      battery_capacity_kwh: null,
       ...config,
     };
     if (this._hass) this._render();
@@ -90,10 +92,6 @@ class SolarEntitiesCard extends HTMLElement {
     const innerH = 82;
     const fillH  = Math.max(0, Math.min(socPct / 100, 1)) * innerH;
     const fillY  = (93 - fillH).toFixed(1);
-    const pctTxt = Math.round(socPct) + '%';
-    // Text at y=57; fill covers it when fillH > 36 (≈44% SOC) → white on color, else dark on background
-    const textFill = fillH > 36 ? '#fff' : 'var(--primary-text-color, #1c1c1e)';
-
     return `
       <svg viewBox="0 0 52 96" xmlns="http://www.w3.org/2000/svg" style="width:48px;display:block">
         <defs>
@@ -111,11 +109,6 @@ class SolarEntitiesCard extends HTMLElement {
         <rect x="3" y="${fillY}" width="46" height="${fillH.toFixed(1)}" rx="9"
           fill="${batColor}"
           clip-path="url(#sec-bat-clip)"/>
-        <text x="26" y="57"
-          text-anchor="middle" dominant-baseline="middle"
-          font-family="var(--paper-font-body1_-_font-family, system-ui, sans-serif)"
-          font-size="12" font-weight="700"
-          fill="${textFill}">${pctTxt}</text>
       </svg>`;
   }
 
@@ -166,6 +159,23 @@ class SolarEntitiesCard extends HTMLElement {
     const pvBarH      = (Math.min(pvFrac, 1) * 100).toFixed(1);
     const houseBarH   = (Math.min(houseFrac, 1) * 100).toFixed(1);
     const batSvg      = this._batterySvg(socVal, batSocColor);
+
+    // ── estimated battery time ───────────────────────────────────────────────
+    let batTimeHtml = '';
+    const capKwh = parseFloat(c.battery_capacity_kwh);
+    if (capKwh > 0 && Math.abs(batPow) > 10) {
+      const powerKw = Math.abs(batPow) / 1000;
+      const isCharging = batPow > 10;
+      const remainKwh  = isCharging
+        ? ((100 - socVal) / 100) * capKwh
+        : (socVal / 100) * capKwh;
+      const hours  = remainKwh / powerKw;
+      const h      = Math.floor(hours);
+      const m      = Math.round((hours - h) * 60);
+      const timeStr = h > 0 ? `${h}h${m > 0 ? ' ' + m + 'min' : ''}` : `${m}min`;
+      const label   = isCharging ? 'bis voll' : 'bis leer';
+      batTimeHtml = `<div class="bat-time">~ ${timeStr} ${label}</div>`;
+    }
 
     this.shadowRoot.innerHTML = `
       <style>
@@ -343,6 +353,11 @@ class SolarEntitiesCard extends HTMLElement {
           font-size: 11px; font-weight: 500;
           text-transform: uppercase; letter-spacing: 0.5px;
         }
+        .bat-time {
+          font-size: 11px; font-weight: 500;
+          color: var(--secondary-text-color, #8e8e93);
+          margin-top: 4px;
+        }
 
         /* EMPTY STATE */
         .empty-state {
@@ -432,6 +447,7 @@ class SolarEntitiesCard extends HTMLElement {
                 </div>
                 <span class="bat-status clickable" style="color:${batPowColor}" data-entity="${c.entity_battery_power || ''}">${batStatus}</span>
               </div>
+              ${batTimeHtml}
             </div>
           </div>
 
@@ -498,6 +514,7 @@ const EDITOR_SCHEMA = [
   { name: 'entity_battery_power', label: 'Speicher Leistung +/− (W)',      selector: { entity: { domain: 'sensor' } } },
   { name: 'entity_house',         label: 'Hausverbrauch (W)',              selector: { entity: { domain: 'sensor' } } },
   { name: 'entity_daily_yield',   label: 'PV Tagesertrag (kWh)',           selector: { entity: { domain: 'sensor' } } },
+  { name: 'battery_capacity_kwh', label: 'Speicher Kapazität (kWh)',       selector: { number: { min: 1, max: 50, step: 0.5, mode: 'box', unit_of_measurement: 'kWh' } } },
   { name: 'max_pv',               label: 'Max. PV Leistung (W)',           selector: { number: { min: 1000, max: 20000, step: 500, mode: 'box', unit_of_measurement: 'W' } } },
   { name: 'max_string',           label: 'Max. String Leistung (W)',       selector: { number: { min: 500,  max: 10000, step: 500, mode: 'box', unit_of_measurement: 'W' } } },
   { name: 'max_house',            label: 'Max. Hausverbrauch (W)',         selector: { number: { min: 500,  max: 10000, step: 500, mode: 'box', unit_of_measurement: 'W' } } },
