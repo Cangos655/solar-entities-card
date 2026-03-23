@@ -2,7 +2,7 @@
 // Custom Lovelace Card for Home Assistant
 // Displays solar power entities: PV, Strings, Battery, House consumption
 
-const CARD_VERSION = '1.1.2';
+const CARD_VERSION = '1.1.3';
 
 // ─── MAIN CARD ────────────────────────────────────────────────────────────────
 
@@ -136,7 +136,13 @@ class SolarEntitiesCard extends HTMLElement {
 
     // battery color
     const batSocColor = socVal >= 40 ? '#34c759' : socVal >= 20 ? '#ffd60a' : '#ff3b30';
-    const batCapPct   = Math.max(0, Math.min(socVal, 100)).toFixed(0);
+
+    // battery power display
+    let batArrow = '⚡', batPowColor = 'var(--secondary-text-color, #8e8e93)', batStatus = 'Standby';
+    if (batPow < -10) { batArrow = '↑'; batPowColor = '#ff3b30'; batStatus = 'Entlädt'; }
+    else if (batPow > 10) { batArrow = '↓'; batPowColor = '#34c759'; batStatus = 'Lädt'; }
+    const batPowDisplay = Math.abs(Math.round(batPow)).toLocaleString('de-DE');
+    const batPillBg = batPow < -10 ? 'rgba(255,59,48,0.08)' : batPow > 10 ? 'rgba(52,199,89,0.09)' : 'var(--secondary-background-color, #f2f2f7)';
 
 
     // yield header
@@ -328,19 +334,18 @@ class SolarEntitiesCard extends HTMLElement {
           text-transform: uppercase; letter-spacing: 0.3px;
           margin-bottom: 3px;
         }
-        .bat-soc-row {
-          display: flex; align-items: baseline; gap: 4px;
-        }
-        .bat-soc-num  { font-size: 34px; font-weight: 800; letter-spacing: -1px; line-height: 1; }
-        .bat-soc-unit { font-size: 14px; color: var(--secondary-text-color, #8e8e93); }
-        .bat-cap-bar  {
-          height: 3px; background: rgba(120,120,128,0.2);
-          border-radius: 2px; overflow: hidden;
-        }
-        .bat-cap-fill { height: 100%; border-radius: 2px; }
         .bat-soc-click.clickable { cursor: pointer; border-radius: 8px; transition: opacity 0.15s; }
         .bat-soc-click.clickable:hover  { opacity: 0.7; }
         .bat-soc-click.clickable:active { opacity: 0.45; }
+        .bat-power-row { display: flex; align-items: center; gap: 8px; }
+        .bat-power-pill {
+          display: flex; align-items: center; gap: 5px;
+          border-radius: 20px; padding: 5px 10px; cursor: pointer;
+        }
+        .bat-arrow     { font-size: 13px; line-height: 1; }
+        .bat-pow-num   { font-size: 15px; font-weight: 700; letter-spacing: -0.3px; line-height: 1; }
+        .bat-pow-unit  { font-size: 11px; color: var(--secondary-text-color, #8e8e93); }
+        .bat-status    { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; }
         .bat-time {
           font-size: 20px; font-weight: 700;
           letter-spacing: -0.5px; line-height: 1.2;
@@ -427,15 +432,14 @@ class SolarEntitiesCard extends HTMLElement {
             </div>
             <div class="bat-divider"></div>
             <div class="bat-info">
-              <div class="bat-soc-click clickable" data-entity="${c.entity_battery_soc || ''}">
-                <div class="bat-info-title">Speicher</div>
-                <div class="bat-soc-row">
-                  <div class="bat-soc-num">${this._fmt(socVal, '%')}</div>
-                  <div class="bat-soc-unit">%</div>
+              <div class="bat-info-title">Speicher</div>
+              <div class="bat-power-row">
+                <div class="bat-power-pill clickable" style="background:${batPillBg}" data-entity="${c.entity_battery_power || ''}">
+                  <span class="bat-arrow" style="color:${batPowColor}">${batArrow}</span>
+                  <span class="bat-pow-num" style="color:${batPowColor}">${batPowDisplay}</span>
+                  <span class="bat-pow-unit">W</span>
                 </div>
-              </div>
-              <div class="bat-cap-bar bat-soc-click clickable" data-entity="${c.entity_battery_soc || ''}">
-                <div class="bat-cap-fill" style="width:${batCapPct}%;background:${batSocColor}"></div>
+                <span class="bat-status clickable" style="color:${batPowColor}" data-entity="${c.entity_battery_power || ''}">${batStatus}</span>
               </div>
               ${batTimeHtml}
             </div>
@@ -481,8 +485,8 @@ class SolarEntitiesCard extends HTMLElement {
       houseTile.addEventListener('click', () => this._moreInfo(houseTile.dataset.entity));
     }
 
-    // Battery: SOC areas
-    this.shadowRoot.querySelectorAll('.bat-soc-click[data-entity]').forEach(el => {
+    // Battery: SOC + power pill
+    this.shadowRoot.querySelectorAll('.bat-soc-click[data-entity], .bat-power-pill[data-entity], .bat-status[data-entity]').forEach(el => {
       el.addEventListener('click', e => {
         e.stopPropagation();
         this._moreInfo(el.dataset.entity);
