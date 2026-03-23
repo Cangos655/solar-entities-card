@@ -2,7 +2,7 @@
 // Custom Lovelace Card for Home Assistant
 // Displays solar power entities: PV, Strings, Battery, House consumption
 
-const CARD_VERSION = '1.1.1';
+const CARD_VERSION = '1.1.2';
 
 // ─── MAIN CARD ────────────────────────────────────────────────────────────────
 
@@ -30,6 +30,8 @@ class SolarEntitiesCard extends HTMLElement {
       entity_house:           '',
       entity_daily_yield:     '',
       battery_capacity_kwh:   null,
+      battery_min_soc:        5,
+      battery_max_soc:        100,
       max_pv:                 6000,
       max_string:             4000,
       max_house:              3000,
@@ -45,6 +47,8 @@ class SolarEntitiesCard extends HTMLElement {
       max_house:           3000,
       max_battery:         5000,
       battery_capacity_kwh: null,
+      battery_min_soc:      5,
+      battery_max_soc:      100,
       ...config,
     };
     if (this._hass) this._render();
@@ -134,16 +138,6 @@ class SolarEntitiesCard extends HTMLElement {
     const batSocColor = socVal >= 40 ? '#34c759' : socVal >= 20 ? '#ffd60a' : '#ff3b30';
     const batCapPct   = Math.max(0, Math.min(socVal, 100)).toFixed(0);
 
-    // battery power display
-    // negative = discharging, positive = charging
-    let batArrow = '⚡', batPowColor = 'var(--secondary-text-color, #8e8e93)', batStatus = 'Standby';
-    if (batPow < -10) {
-      batArrow = '↑'; batPowColor = '#ff3b30'; batStatus = 'Entlädt';
-    } else if (batPow > 10) {
-      batArrow = '↓'; batPowColor = '#34c759'; batStatus = 'Lädt';
-    }
-    const batPowDisplay = Math.abs(Math.round(batPow)).toLocaleString('de-DE');
-    const batPillBg     = batPow < -10 ? 'rgba(255,59,48,0.08)' : batPow > 10 ? 'rgba(52,199,89,0.09)' : 'var(--secondary-background-color, #f2f2f7)';
 
     // yield header
     const yieldHtml = yieldVal !== null
@@ -163,18 +157,24 @@ class SolarEntitiesCard extends HTMLElement {
     // ── estimated battery time ───────────────────────────────────────────────
     let batTimeHtml = '';
     const capKwh = parseFloat(c.battery_capacity_kwh);
+    const minSoc  = parseFloat(c.battery_min_soc)  || 5;
+    const maxSoc  = parseFloat(c.battery_max_soc)  || 100;
     if (capKwh > 0 && Math.abs(batPow) > 10) {
-      const powerKw = Math.abs(batPow) / 1000;
+      const powerKw    = Math.abs(batPow) / 1000;
       const isCharging = batPow > 10;
       const remainKwh  = isCharging
-        ? ((100 - socVal) / 100) * capKwh
-        : (socVal / 100) * capKwh;
-      const hours  = remainKwh / powerKw;
-      const h      = Math.floor(hours);
-      const m      = Math.round((hours - h) * 60);
-      const timeStr = h > 0 ? `${h}h${m > 0 ? ' ' + m + 'min' : ''}` : `${m}min`;
-      const label   = isCharging ? 'bis voll' : 'bis leer';
-      batTimeHtml = `<div class="bat-time">~ ${timeStr} ${label}</div>`;
+        ? ((maxSoc - socVal) / 100) * capKwh
+        : ((socVal - minSoc) / 100) * capKwh;
+      if (remainKwh > 0) {
+        const hours   = remainKwh / powerKw;
+        const h       = Math.floor(hours);
+        const m       = Math.round((hours - h) * 60);
+        const timeStr = h > 0 ? `${h}h${m > 0 ? ' ' + m + 'min' : ''}` : `${m}min`;
+        const label   = isCharging ? 'bis voll' : 'bis leer';
+        batTimeHtml = `<div class="bat-time">~ ${timeStr} <span class="bat-time-lbl">${label}</span></div>`;
+      }
+    } else if (Math.abs(batPow) <= 10) {
+      batTimeHtml = `<div class="bat-time bat-time-standby">Standby</div>`;
     }
 
     this.shadowRoot.innerHTML = `
@@ -338,25 +338,23 @@ class SolarEntitiesCard extends HTMLElement {
           border-radius: 2px; overflow: hidden;
         }
         .bat-cap-fill { height: 100%; border-radius: 2px; }
-        .bat-power-row { display: flex; align-items: center; gap: 8px; }
         .bat-soc-click.clickable { cursor: pointer; border-radius: 8px; transition: opacity 0.15s; }
         .bat-soc-click.clickable:hover  { opacity: 0.7; }
         .bat-soc-click.clickable:active { opacity: 0.45; }
-        .bat-power-pill {
-          display: flex; align-items: center; gap: 5px;
-          border-radius: 20px; padding: 5px 10px;
-        }
-        .bat-arrow  { font-size: 13px; line-height: 1; }
-        .bat-pow-num { font-size: 15px; font-weight: 700; letter-spacing: -0.3px; line-height: 1; }
-        .bat-pow-unit { font-size: 11px; color: var(--secondary-text-color, #8e8e93); }
-        .bat-status {
-          font-size: 11px; font-weight: 500;
-          text-transform: uppercase; letter-spacing: 0.5px;
-        }
         .bat-time {
-          font-size: 11px; font-weight: 500;
+          font-size: 20px; font-weight: 700;
+          letter-spacing: -0.5px; line-height: 1.2;
+          color: var(--primary-text-color, #1c1c1e);
+          margin-top: 6px;
+        }
+        .bat-time-lbl {
+          font-size: 13px; font-weight: 500;
           color: var(--secondary-text-color, #8e8e93);
-          margin-top: 4px;
+        }
+        .bat-time-standby {
+          font-size: 13px; font-weight: 500;
+          color: var(--secondary-text-color, #8e8e93);
+          text-transform: uppercase; letter-spacing: 0.5px;
         }
 
         /* EMPTY STATE */
@@ -439,14 +437,6 @@ class SolarEntitiesCard extends HTMLElement {
               <div class="bat-cap-bar bat-soc-click clickable" data-entity="${c.entity_battery_soc || ''}">
                 <div class="bat-cap-fill" style="width:${batCapPct}%;background:${batSocColor}"></div>
               </div>
-              <div class="bat-power-row">
-                <div class="bat-power-pill clickable" style="background:${batPillBg}" data-entity="${c.entity_battery_power || ''}">
-                  <span class="bat-arrow" style="color:${batPowColor}">${batArrow}</span>
-                  <span class="bat-pow-num" style="color:${batPowColor}">${batPowDisplay}</span>
-                  <span class="bat-pow-unit">W</span>
-                </div>
-                <span class="bat-status clickable" style="color:${batPowColor}" data-entity="${c.entity_battery_power || ''}">${batStatus}</span>
-              </div>
               ${batTimeHtml}
             </div>
           </div>
@@ -491,8 +481,8 @@ class SolarEntitiesCard extends HTMLElement {
       houseTile.addEventListener('click', () => this._moreInfo(houseTile.dataset.entity));
     }
 
-    // Battery: SOC areas and power pill/status (each has own data-entity)
-    this.shadowRoot.querySelectorAll('.bat-soc-click[data-entity], .bat-power-pill[data-entity], .bat-status[data-entity]').forEach(el => {
+    // Battery: SOC areas
+    this.shadowRoot.querySelectorAll('.bat-soc-click[data-entity]').forEach(el => {
       el.addEventListener('click', e => {
         e.stopPropagation();
         this._moreInfo(el.dataset.entity);
@@ -514,7 +504,9 @@ const EDITOR_SCHEMA = [
   { name: 'entity_battery_power', label: 'Speicher Leistung +/− (W)',      selector: { entity: { domain: 'sensor' } } },
   { name: 'entity_house',         label: 'Hausverbrauch (W)',              selector: { entity: { domain: 'sensor' } } },
   { name: 'entity_daily_yield',   label: 'PV Tagesertrag (kWh)',           selector: { entity: { domain: 'sensor' } } },
-  { name: 'battery_capacity_kwh', label: 'Speicher Kapazität (kWh)',       selector: { number: { min: 1, max: 50, step: 0.5, mode: 'box', unit_of_measurement: 'kWh' } } },
+  { name: 'battery_capacity_kwh', label: 'Speicher Kapazität (kWh)',       selector: { number: { min: 1,   max: 50,  step: 0.5, mode: 'box', unit_of_measurement: 'kWh' } } },
+  { name: 'battery_min_soc',      label: 'Speicher Entlade-Limit (%)',     selector: { number: { min: 0,   max: 50,  step: 1,   mode: 'slider', unit_of_measurement: '%' } } },
+  { name: 'battery_max_soc',      label: 'Speicher Lade-Limit (%)',        selector: { number: { min: 50,  max: 100, step: 1,   mode: 'slider', unit_of_measurement: '%' } } },
   { name: 'max_pv',               label: 'Max. PV Leistung (W)',           selector: { number: { min: 1000, max: 20000, step: 500, mode: 'box', unit_of_measurement: 'W' } } },
   { name: 'max_string',           label: 'Max. String Leistung (W)',       selector: { number: { min: 500,  max: 10000, step: 500, mode: 'box', unit_of_measurement: 'W' } } },
   { name: 'max_house',            label: 'Max. Hausverbrauch (W)',         selector: { number: { min: 500,  max: 10000, step: 500, mode: 'box', unit_of_measurement: 'W' } } },
